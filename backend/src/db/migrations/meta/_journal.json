@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1772688665835,
+      "tag": "0000_superb_supernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772699270369,
+      "tag": "0001_perpetual_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772727604822,
+      "tag": "0002_tearful_agent_zero",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772866166713,
+      "tag": "0003_reflective_morgan_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772877248264,
+      "tag": "0004_living_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772980260043,
+      "tag": "0005_dry_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774986513526,
+      "tag": "0006_quiet_jamie_braddock",
+      "breakpoints": true
+    }
+  ]
+}

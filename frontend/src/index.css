@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    --background: 220 14% 96%;
+    --foreground: 224 12% 15%;
+
+    --card: 0 0% 99%;
+    --card-foreground: 224 12% 15%;
+
+    --popover: 0 0% 99%;
+    --popover-foreground: 224 12% 15%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 12% 91%;
+    --secondary-foreground: 224 12% 20%;
+
+    --muted: 220 12% 91%;
+    --muted-foreground: 220 8% 46%;
+
+    --accent: 220 12% 91%;
+    --accent-foreground: 224 12% 20%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 10% 86%;
+    --input: 220 10% 86%;
+    --ring: 262 83% 58%;
+
+    --radius: 0.625rem;
+
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+  }
+
+  .dark {
+    --background: 224 14% 8%;
+    --foreground: 210 20% 92%;
+
+    --card: 224 14% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 224 14% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 262 83% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 224 10% 16%;
+    --secondary-foreground: 210 20% 92%;
+
+    --muted: 224 10% 16%;
+    --muted-foreground: 220 8% 56%;
+
+    --accent: 224 10% 16%;
+    --accent-foreground: 210 20% 92%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 20% 92%;
+
+    --border: 224 10% 18%;
+    --input: 224 10% 18%;
+    --ring: 262 83% 68%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    margin: 0;
+    min-height: 100vh;
+    letter-spacing: -0.011em;
+  }
+
+  /* Refined scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  /* Remove number input spinners */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* Smooth transitions */
+@layer utilities {
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
