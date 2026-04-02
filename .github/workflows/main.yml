@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  NODE_VERSION: '20'
+  BUN_VERSION: 'latest'
 
 jobs:
   test:
@@ -49,40 +49,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
+          bun-version: ${{ env.BUN_VERSION }}
 
       # --- Backend ---
       - name: Install backend dependencies
         working-directory: backend
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Lint backend
         working-directory: backend
-        run: npm run lint
+        run: bun run lint
 
       - name: Run backend tests
         working-directory: backend
-        run: npm run test
+        run: bun run test
 
       # --- Frontend ---
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Lint frontend
         working-directory: frontend
-        run: npx tsc --noEmit
+        run: bun run tsc --noEmit
 
       - name: Build frontend
         working-directory: frontend
-        run: npm run build
+        run: bun run build
 
   deploy:
     name: Deploy

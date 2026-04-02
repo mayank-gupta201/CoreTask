@@ -3,6 +3,7 @@ module.exports = {
         {
             name: 'task-management-api',
             script: './dist/index.js',
+            interpreter: 'bun',
             instances: 'max',
             exec_mode: 'cluster',
             env: {

@@ -1,17 +1,18 @@
-FROM node:20-alpine AS builder
+FROM oven/bun:alpine AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN bun run build
 
-FROM node:20-alpine
+FROM oven/bun:alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 COPY --from=builder /app/dist ./dist
-RUN npm install -g pm2
+RUN bun install -g pm2
 COPY ecosystem.config.js .
 
 EXPOSE 4000
 CMD ["pm2-runtime", "ecosystem.config.js"]
+

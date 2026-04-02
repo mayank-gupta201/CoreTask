@@ -2,7 +2,7 @@ import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Button } from '@/components/ui/button';
-import { Menu, UserCircle, LogOut, CheckSquare, FileText, LayoutDashboard, Moon, Sun } from 'lucide-react';
+import { Menu, UserCircle, LogOut, CheckSquare, FileText, LayoutDashboard, Moon, Sun, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkspaceSwitcher } from '@/features/workspaces/WorkspaceSwitcher';
 import { InviteMemberDialog } from '@/features/workspaces/InviteMemberDialog';
@@ -11,6 +11,7 @@ import { api } from '@/api/axios';
 
 const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
+    { to: '/ppm', icon: Briefcase, label: 'PPM & Portfolios' },
     { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
     { to: '/templates', icon: FileText, label: 'Templates' },
 ];

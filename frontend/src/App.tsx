@@ -8,6 +8,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { DashboardOverview } from './features/dashboard/DashboardOverview';
 import { TaskList } from './features/tasks/TaskList';
 import { TemplatesPage } from './features/templates/TemplatesPage';
+import { PpmDashboard } from './features/ppm/PpmDashboard';
 import { useAuthStore } from './store/authStore';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
 
                 <Route path="/" element={<DashboardLayout />}>
                     <Route index element={<DashboardOverview />} />
+                    <Route path="ppm" element={<PpmDashboard />} />
                     <Route path="tasks" element={<TaskList />} />
                     <Route path="templates" element={<TemplatesPage />} />
                 </Route>

@@ -50,6 +50,20 @@
       "when": 1774986513526,
       "tag": "0006_quiet_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775142698848,
+      "tag": "0007_chemical_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775154091848,
+      "tag": "0008_chubby_nico_minoru",
+      "breakpoints": true
     }
   ]
 }
