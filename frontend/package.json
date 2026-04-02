@@ -38,6 +38,7 @@
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "frappe-gantt": "^1.2.2",
+    "gantt-task-react": "^0.3.9",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

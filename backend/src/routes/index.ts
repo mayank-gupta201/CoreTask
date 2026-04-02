@@ -5,6 +5,8 @@ import { workspaceRouter } from './workspace.routes';
 import { templateRouter } from './template.routes';
 import { chatRouter } from './chat.routes';
 import { portfolioRouter } from './portfolio.routes';
+import { dependencyRoutes } from './dependency.routes';
+import { ppmRoutes } from './ppm.routes';
 import { webhookRouter } from './github-webhook.routes';
 import { apiLimiter, authLimiter } from '../middlewares/rateLimiter.middleware';
 
@@ -16,6 +18,9 @@ apiRouter.use('/portfolios', apiLimiter as any, portfolioRouter);
 apiRouter.use('/tasks', apiLimiter as any, taskRouter);
 apiRouter.use('/templates', apiLimiter as any, templateRouter);
 apiRouter.use('/chat', apiLimiter as any, chatRouter);
+
+// PROMPT 1C: Dependencies + Gantt (mapped under workspaces scope)
+apiRouter.use('/workspaces/:workspaceId', apiLimiter as any, dependencyRoutes);
 
 // Feature 7: Webhook routes — no rate limiter (GitHub may retry on failure)
 apiRouter.use('/webhooks', webhookRouter);

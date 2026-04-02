@@ -1,6 +1,7 @@
 import { eq, and, isNull, lt, desc, ilike, or, sql, SQL } from 'drizzle-orm';
 import { db } from '../db';
 import { tasks } from '../db/schema';
+import { decodeCursor, paginateQuery } from '../utils/pagination';
 
 export type NewTask = typeof tasks.$inferInsert;
 export type Task = typeof tasks.$inferSelect;
@@ -17,8 +18,9 @@ export interface TaskFilters {
 }
 
 export interface PaginatedResult<T> {
-    items: T[];
+    data: T[];
     nextCursor: string | null;
+    hasMore: boolean;
     total: number;
 }
 
@@ -68,34 +70,38 @@ export class TaskRepository {
             );
         }
         if (cursor) {
-            conditions.push(lt(tasks.createdAt, new Date(cursor)));
+            const decoded = decodeCursor(cursor);
+            if (decoded) {
+                conditions.push(
+                    or(
+                        lt(tasks.createdAt, decoded.created_at),
+                        and(
+                            eq(tasks.createdAt, decoded.created_at),
+                            lt(tasks.id, decoded.id)
+                        )
+                    )!
+                );
+            }
         }
 
         // Get total count (without cursor/limit — for UI display)
-        const countConditions = conditions.filter((_, i) => {
-            // Remove the cursor condition from count query
-            return !cursor || i !== conditions.length - 1;
-        });
+        const countConditions = conditions.filter((_, i) => !cursor || i !== conditions.length - 1);
         const [{ count }] = await db
             .select({ count: sql<number>`count(*)::int` })
             .from(tasks)
             .where(and(...countConditions));
 
-        // Get items
+        // Get items ordered deterministically
         const items = await db
             .select()
             .from(tasks)
             .where(and(...conditions))
-            .orderBy(desc(tasks.createdAt))
-            .limit(limit + 1); // Fetch one extra to check if there's a next page
+            .orderBy(desc(tasks.createdAt), desc(tasks.id))
+            .limit(limit + 1); 
 
-        let nextCursor: string | null = null;
-        if (items.length > limit) {
-            items.pop(); // Remove the extra item
-            nextCursor = items[items.length - 1].createdAt.toISOString();
-        }
-
-        return { items, nextCursor, total: count };
+        const paginated = paginateQuery(items, limit, 'createdAt', 'id');
+        
+        return { ...paginated, total: count };
     }
 
     async findByIdAndWorkspace(id: string, workspaceId: string): Promise<Task | undefined> {

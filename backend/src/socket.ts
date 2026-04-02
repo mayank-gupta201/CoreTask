@@ -2,7 +2,25 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { logger } from './middlewares/logger.middleware';
 
-let io: Server;
+export interface ServerToClientEvents {
+    // Standard Tasks
+    taskCreated: (task: any) => void;
+    taskUpdated: (task: any) => void;
+    taskDeleted: (payload: { id: string, workspaceId: string }) => void;
+    taskActivityCreated: (payload: { taskId: string, activity: any }) => void;
+    
+    // Dependencies (PROMPT 1C)
+    'dependency:created': (payload: { dependency: any }) => void;
+    'dependency:deleted': (payload: { dependencyId: string }) => void;
+    'critical-path:updated': (payload: { workspaceId: string, criticalPathTaskIds: string[] }) => void;
+}
+
+export interface ClientToServerEvents {
+    joinWorkspace: (workspaceId: string) => void;
+    leaveWorkspace: (workspaceId: string) => void;
+}
+
+let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
 export const initSocket = (server: HttpServer) => {
     io = new Server(server, {

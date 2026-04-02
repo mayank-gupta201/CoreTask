@@ -48,8 +48,8 @@ export class TemplateService {
             throw new Error('Template not found');
         }
 
-        const templateItems = template.items;
-        if (!templateItems || templateItems.length === 0) {
+        const templateItems = template.items || [];
+        if (templateItems.length === 0) {
             throw new Error('Template has no items');
         }
 

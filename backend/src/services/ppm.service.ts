@@ -1,15 +1,16 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc, gte, lte } from 'drizzle-orm';
 import { db } from '../db';
-import { portfolios, programs, projects, timeLogs, projectAllocations } from '../db/schema';
+import { portfolios, programs, programProjects, projects, timeLogs, timesheets, userCostRates, taskAssignments, taskDependencies } from '../db/schema';
 
 export class PpmService {
-    // === PROGRAMS ===
-    async createProgram(portfolioId: string, name: string, description?: string, budget?: number) {
+    // === PORTFOLIOS & PROGRAMS ===
+    async createProgram(portfolioId: string, name: string, description?: string, startDate?: Date, endDate?: Date) {
         const [program] = await db.insert(programs).values({
             portfolioId,
             name,
             description,
-            budget: budget || 0
+            startDate: startDate || null,
+            endDate: endDate || null
         }).returning();
         return program;
     }
@@ -18,36 +19,82 @@ export class PpmService {
         return await db.query.programs.findMany({
             where: eq(programs.portfolioId, portfolioId),
             with: {
-                projects: true
+                programProjects: {
+                    with: {
+                        workspace: true
+                    }
+                }
             }
         });
     }
 
-    // === RESOURCE FORECASTING ===
-    async getResourceForecast(workspaceId: string) {
-        // Here we could query projectAllocations vs timesheets
-        // For simplicity in this mock, we just fetch allocations and time logs over the last 30 days
-        const allocations = await db.query.projectAllocations.findMany({
-            with: {
-                user: true,
-                project: true,
-            }
+    // === TIMESHEETS & TIME LOGGING ===
+    async getOrCreateTimesheet(userId: string, workspaceId: string, weekStart: string, weekEnd: string) {
+        // weekStart / weekEnd should be YYYY-MM-DD strings
+        const existing = await db.query.timesheets.findFirst({
+            where: and(
+                eq(timesheets.userId, userId),
+                eq(timesheets.workspaceId, workspaceId),
+                eq(timesheets.weekStart, weekStart)
+            ),
+            with: { timeLogs: true }
         });
+
+        if (existing) return existing;
+
+        const [newTimesheet] = await db.insert(timesheets).values({
+            userId,
+            workspaceId,
+            weekStart,
+            weekEnd,
+            status: 'DRAFT'
+        }).returning();
         
-        return { allocations };
+        return { ...newTimesheet, timeLogs: [] };
     }
 
-    // === FINANCIALS & TIMESHEETS ===
+    async logTime(timesheetId: string, taskId: string | null, userId: string, logDate: string, hours: number, notes?: string) {
+        const [log] = await db.insert(timeLogs).values({
+            timesheetId,
+            taskId,
+            userId,
+            logDate,
+            hours: hours.toString(), // Decimal mapped to string internally for compat
+            notes
+        }).returning();
+        return log;
+    }
+
+    // === TASK ASSIGNMENTS & DEPENDENCIES ===
+    async assignUserToTask(taskId: string, userId: string, assignedBy: string, allocationPercent: number = 100) {
+        return await db.insert(taskAssignments).values({
+            taskId,
+            userId,
+            assignedBy,
+            allocationPercent
+        }).returning();
+    }
+
+    async addTaskDependency(predecessorId: string, successorId: string, type: string, lagDays: number, createdBy: string) {
+        return await db.insert(taskDependencies).values({
+            predecessorTaskId: predecessorId,
+            successorTaskId: successorId,
+            dependencyType: type, // FS, SS, FF, SF
+            lagDays,
+            createdBy
+        }).returning();
+    }
+
+    // === FINANCIALS ===
     async getPortfolioFinancials(portfolioId: string) {
-        // Calculates Cost Rate vs Billing Rate on TimeLogs associated with projects in this portfolio
-        // This returns the exact Margin and Profitability.
-        
-        // This is a placeholder for the complex aggregate logic
+        // Mocked aggregation replacing complex dynamic rate JOIN logic for now, giving structural insight
+        // In full impl, this would join timeLogs over userCostRates grouped by effectiveDate
         return {
-            margin: 14.2,
-            totalCost: 15000,
-            totalRevenue: 28000,
-            openRisks: 12
+            margin: 18.5,
+            totalCost: 22000,
+            totalRevenue: 34500,
+            openRisks: 8,
+            currency: 'USD'
         };
     }
 }
