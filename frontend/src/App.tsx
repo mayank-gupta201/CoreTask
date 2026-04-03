@@ -9,6 +9,7 @@ import { DashboardOverview } from './features/dashboard/DashboardOverview';
 import { TaskList } from './features/tasks/TaskList';
 import { TemplatesPage } from './features/templates/TemplatesPage';
 import { PpmDashboard } from './features/ppm/PpmDashboard';
+import { GanttView } from '@/features/gantt/GanttView';
 import { useAuthStore } from './store/authStore';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
                     <Route path="ppm" element={<PpmDashboard />} />
                     <Route path="tasks" element={<TaskList />} />
                     <Route path="templates" element={<TemplatesPage />} />
+                    <Route path="gantt" element={<GanttView />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
