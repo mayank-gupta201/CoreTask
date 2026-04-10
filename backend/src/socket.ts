@@ -13,6 +13,11 @@ export interface ServerToClientEvents {
     'dependency:created': (payload: { dependency: any }) => void;
     'dependency:deleted': (payload: { dependencyId: string }) => void;
     'critical-path:updated': (payload: { workspaceId: string, criticalPathTaskIds: string[] }) => void;
+
+    // Resource Management (PROMPT 2A)
+    'assignment:created': (payload: { taskId: string, userId: string, allocationPercent: number }) => void;
+    'assignment:removed': (payload: { taskId: string, userId: string }) => void;
+    'resource:overallocated': (payload: { userId: string, userName: string, overAllocatedDates: string[] }) => void;
 }
 
 export interface ClientToServerEvents {

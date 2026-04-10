@@ -7,10 +7,10 @@ import { cacheService, CacheService } from './cache.service';
 
 export class TaskService {
     private coerceDates<T extends Record<string, any>>(data: T): T {
-        const result = { ...data };
+        const result = { ...data } as any;
         if (typeof result.dueDate === 'string') result.dueDate = new Date(result.dueDate);
         if (typeof result.startDate === 'string') result.startDate = new Date(result.startDate);
-        return result;
+        return result as T;
     }
 
     async createTask(workspaceId: string, userId: string, data: Omit<NewTask, 'userId' | 'workspaceId'>) {

@@ -22,6 +22,9 @@ export const recurringTasksQueue = new Queue('recurringTasksQueue', { connection
 // Critical path queue - compute zero-float critical paths using CPM
 export const criticalPathQueue = new Queue('criticalPathQueue', { connection: connection as any });
 
+// Utilization compute queue - detects >100% capacity overloading
+export const utilizationQueue = new Queue('utilizationQueue', { connection: connection as any });
+
 
 // Schedule the recurring job (runs at 00:00 every day)
 recurringTasksQueue.upsertJobScheduler(
