@@ -31,7 +31,7 @@ export function paginateQuery<T extends Record<string, any>>(
     limit: number, 
     cursorField: keyof T = 'createdAt', 
     idField: keyof T = 'id'
-): { data: T[], nextCursor: string | null, hasMore: boolean } {
+): { items: T[], nextCursor: string | null, hasMore: boolean } {
     let hasMore = false;
     
     // If the database returned limit + 1 items, there is a next page
@@ -47,7 +47,7 @@ export function paginateQuery<T extends Record<string, any>>(
     }
 
     return {
-        data: items,
+        items,
         nextCursor,
         hasMore
     };

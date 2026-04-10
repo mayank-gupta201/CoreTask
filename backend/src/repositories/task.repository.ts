@@ -18,7 +18,7 @@ export interface TaskFilters {
 }
 
 export interface PaginatedResult<T> {
-    data: T[];
+    items: T[];
     nextCursor: string | null;
     hasMore: boolean;
     total: number;

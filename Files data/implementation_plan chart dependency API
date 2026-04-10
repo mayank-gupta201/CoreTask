@@ -1,0 +1,40 @@
+# Task Dependencies API & Critical Path Method
+
+This design document outlines the full-stack architecture required to implement PROMPT 1C, giving your system advanced Enterprise programmatic Project Management features (circular dependency protection, BullMQ Critical Path async computation).
+
+## User Review Required
+
+> [!CAUTION]
+> Recursive PostgreSQL Queries (CTE) map strictly to Drizzle's `sql` literal helper. I will use native recursive RAW queries for speed and exact circular checking logic. 
+
+> [!TIP]
+> The CPM Algorithm requires durations. I will evaluate task `duration` exclusively using the `tasks.estimatedHours` parameter we established earlier. If it is null, I will default it to 8 hours (1 day).
+
+## Proposed Changes
+
+### 1. Dependency Repository & Validation
+- **`backend/src/repositories/dependency.repository.ts`**: Will contain strict CRUD endpoints.
+- **Circular Block**: I will build a Postgres CTE query (`WITH RECURSIVE`) mapped via Drizzle's `sql` injection. It traces if modifying a target successor loops downstream eventually touching the predecessor. If length > 0, it violently rejects the injection.
+
+### 2. BullMQ Critical Path Worker
+- **Queue Pipeline Integration**: I will inject a `critical-path` queue into `backend/src/queue/index.ts`.
+- **`criticalPathWorker.ts`**: Runs fully decoupled out of Express logic! 
+  - *Algorithm Workflow*:
+    1. Grabs all tasks + dependencies localized to the specified `workspaceId`.
+    2. Runs a standard Topological Sort mapping predecessor restrictions.
+    3. Forward Pass: Accumulates Earliest Start times & Earliest Finish times.
+    4. Backward pass: Calculates Latest Start/Finish times based on total graph finish time.
+    5. Math check: Any tasks operating where `LateStart - EarlyStart == 0` have Zero-Float. They are assigned into the Critical Path Array!
+    6. Writes `{ criticalPathTaskIds }` into the previously mapped Redis layer (from Prompt 1B) for 60-minutes, bypassing SQL load forever!
+
+### 3. Service Layer Routing
+- **`dependency.service.ts`**: Securing parameters and orchestrating BullMQ injections.
+- **`GanttData Mapping`**: Within `TaskService`, `getGanttData` will formulate the mega-JSON required for your frontend. It will eagerly load `assignees`, `dependencies`, and `milestones`, combining them with the fast-loaded Redis `criticalPathTaskIds`.
+
+### 4. Controller & Routes Integration
+- Create robust routes applying `checkPermission('dependency:manage')` enforcing RBAC.
+- Register endpoints inside `backend/src/routes/dependency.routes.ts` mapped sequentially cleanly onto the parent nested `:workspaceId` routing scopes.
+
+## Verification Plan
+1. Validate Recursive SQL parses natively within Bun's SQLite -> Postgres abstraction layer cleanly using typescript checks.
+2. Confirm IO events broadcast safely.

@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '@/store/workspaceStore';
 import { useSocket } from '@/hooks/useSocket';
 import { useGanttStore } from '@/store/ganttStore';
 import { DependencyModal } from './DependencyModal';
+import { TaskSheet } from '../tasks/TaskSheet';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, LayoutList } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,19 @@ export function GanttView() {
 
     const [dependencyModalOpen, setDependencyModalOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
+    const [taskSheetOpen, setTaskSheetOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState<any | null>(null);
+
+    // Fetch members for TaskSheet assignment
+    const { data: members = [] } = useQuery({
+        queryKey: ['workspace-members', activeWorkspaceId],
+        queryFn: async () => {
+            if (!activeWorkspaceId) return [];
+            const res = await api.get(`/workspaces/${activeWorkspaceId}/members`);
+            return res.data;
+        },
+        enabled: !!activeWorkspaceId,
+    });
 
     // Fetch Gantt specific payload
     const { data: ganttData, isLoading } = useQuery({
@@ -99,7 +113,7 @@ export function GanttView() {
 
             formattedTasks.push({
                 id: t.id,
-                name: t.title,
+                name: `[${t.status.replace('_', ' ')}] ${t.title}`,
                 type: 'task',
                 start: start,
                 end: t.dueDate ? new Date(t.dueDate) : fallbackEnd,
@@ -176,6 +190,8 @@ export function GanttView() {
                         ))}
                     </div>
 
+                    <Button variant="outline" size="sm" className="h-8 text-xs bg-muted/50">Save Baseline</Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs bg-muted/50">Add Milestone</Button>
                     <Button onClick={() => setDependencyModalOpen(true)} size="sm" className="h-8 text-xs">
                         <Plus className="h-3.5 w-3.5 mr-1" />
                         Dependency
@@ -194,13 +210,22 @@ export function GanttView() {
                         tasks={formattedTasks}
                         viewMode={zoomLevel as any}
                         onDateChange={handleDateChange}
+                        onClick={(task) => {
+                            if (task.type === 'task') {
+                                const rawTask = ganttData?.tasks.find((t: any) => t.id === task.id);
+                                if (rawTask) {
+                                    setEditingTask(rawTask);
+                                    setTaskSheetOpen(true);
+                                }
+                            }
+                        }}
                         onDoubleClick={(task) => {
                             if (task.type === 'task') {
                                 setSelectedTaskId(task.id);
                                 setDependencyModalOpen(true);
                             }
                         }}
-                        listCellWidth={window.innerWidth < 768 ? "" : "155px"}
+                        listCellWidth={window.innerWidth < 768 ? "" : "220px"} // Widened to fit status prefix
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground text-sm border-dashed">
@@ -215,6 +240,14 @@ export function GanttView() {
                 onClose={() => { setDependencyModalOpen(false); setSelectedTaskId(undefined); }} 
                 tasks={ganttData?.tasks || []} 
                 defaultPredecessorId={selectedTaskId}
+            />
+
+            {/* Task Detail Slide-over */}
+            <TaskSheet
+                open={taskSheetOpen}
+                onClose={() => { setTaskSheetOpen(false); setEditingTask(null); }}
+                editingTask={editingTask}
+                members={members}
             />
         </div>
     );

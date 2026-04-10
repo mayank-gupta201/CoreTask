@@ -86,6 +86,13 @@ export class AIService {
         } catch (error: any) {
             logger.error({ err: error }, 'Failed to generate task breakdown from AI');
             if (error instanceof ProblemDetails) throw error;
+            if (error.status === 429 || error.statusCode === 429) {
+                throw new ProblemDetails({
+                    title: 'Rate Limited',
+                    status: 429,
+                    detail: 'AI rate limit exceeded. Please wait a moment and try again.',
+                });
+            }
             throw new ProblemDetails({
                 title: 'AI Generation Failed',
                 status: 500,
@@ -139,6 +146,13 @@ export class AIService {
         } catch (error: any) {
             logger.error({ err: error }, 'Chat error');
             if (error instanceof ProblemDetails) throw error;
+            if (error.status === 429 || error.statusCode === 429) {
+                throw new ProblemDetails({
+                    title: 'Rate Limited',
+                    status: 429,
+                    detail: 'AI rate limit exceeded. Please wait a moment and try again.',
+                });
+            }
             throw new ProblemDetails({
                 title: 'Chat Failed',
                 status: 500,

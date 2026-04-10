@@ -9,13 +9,12 @@ export const createTaskSchema = z.object({
     body: z.object({
         title: z.string().min(1),
         description: z.string().optional(),
+        status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
         priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
         dueDate: z.string().datetime().optional(),
         category: z.string().optional(),
         recurrenceRule: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional().nullable(),
-        // Feature 1: Task Assignment
         assignedTo: z.string().uuid().optional().nullable(),
-        // Feature 6: Subtasks
         parentTaskId: z.string().uuid().optional().nullable(),
     }),
 });
@@ -88,12 +87,7 @@ export class TaskController {
         try {
             const userId = req.user!.userId;
             const workspaceId = req.workspace!.id;
-            const task = await taskService.createTask(workspaceId, userId, req.body as {
-                title: string;
-                category?: string;
-                assignedTo?: string | null;
-                parentTaskId?: string | null;
-            });
+            const task = await taskService.createTask(workspaceId, userId, req.body);
             return res.status(201).json(task);
         } catch (error) {
             next(error);

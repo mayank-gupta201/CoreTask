@@ -8,6 +8,7 @@ import { errorHandler } from './errors';
 import { apiRouter } from './routes';
 import { emailQueue, connection } from './queue';
 import { createRecurringTaskWorker } from './workers/recurringTaskWorker';
+import './workers/criticalPathWorker';
 import passport from './middlewares/passport.middleware';
 // Initialize db connection and drizzle
 import './db';

@@ -6,8 +6,15 @@ import { eq, isNull, and } from 'drizzle-orm';
 import { cacheService, CacheService } from './cache.service';
 
 export class TaskService {
+    private coerceDates<T extends Record<string, any>>(data: T): T {
+        const result = { ...data };
+        if (typeof result.dueDate === 'string') result.dueDate = new Date(result.dueDate);
+        if (typeof result.startDate === 'string') result.startDate = new Date(result.startDate);
+        return result;
+    }
+
     async createTask(workspaceId: string, userId: string, data: Omit<NewTask, 'userId' | 'workspaceId'>) {
-        const task = await taskRepository.create({ ...data, userId, workspaceId });
+        const task = await taskRepository.create({ ...this.coerceDates(data), userId, workspaceId });
         getIO().to(`workspace_${workspaceId}`).emit('taskCreated', task);
         
         // Invalidate caching
@@ -34,7 +41,7 @@ export class TaskService {
             throw new Error('Task not found');
         }
 
-        const task = await taskRepository.update(id, workspaceId, data);
+        const task = await taskRepository.update(id, workspaceId, this.coerceDates(data));
         if (!task) {
             throw new Error('Task not found');
         }
@@ -100,7 +107,7 @@ export class TaskService {
         if (!task) {
             throw new Error('Task not found');
         }
-        const updated = await taskRepository.update(taskId, task.workspaceId, data);
+        const updated = await taskRepository.update(taskId, task.workspaceId, this.coerceDates(data));
         if (updated) {
             getIO().to(`workspace_${task.workspaceId}`).emit('taskUpdated', updated);
             // Invalidate caching
