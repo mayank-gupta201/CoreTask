@@ -7,8 +7,10 @@ import { chatRouter } from './chat.routes';
 import { portfolioRouter } from './portfolio.routes';
 import { dependencyRoutes } from './dependency.routes';
 import { resourceRoutes } from './resource.routes';
+import { timesheetRoutes } from './timesheet.routes';
 import { ppmRoutes } from './ppm.routes';
 import { webhookRouter } from './github-webhook.routes';
+import { dashboardRouter } from './dashboard.routes';
 import { apiLimiter, authLimiter } from '../middlewares/rateLimiter.middleware';
 
 export const apiRouter = Router();
@@ -25,6 +27,12 @@ apiRouter.use('/workspaces/:workspaceId', apiLimiter as any, dependencyRoutes);
 
 // PROMPT 2A: Resource Management Context
 apiRouter.use('/workspaces/:workspaceId', apiLimiter as any, resourceRoutes);
+
+// PROMPT 2C: Timesheets Context
+apiRouter.use('/workspaces/:workspaceId/timesheets', apiLimiter as any, timesheetRoutes);
+
+// PROMPT 3C: Dashboard Context
+apiRouter.use('/workspaces/:workspaceId/dashboard', apiLimiter as any, dashboardRouter);
 
 // Feature 7: Webhook routes — no rate limiter (GitHub may retry on failure)
 apiRouter.use('/webhooks', webhookRouter);

@@ -10,6 +10,13 @@ import { TaskList } from './features/tasks/TaskList';
 import { TemplatesPage } from './features/templates/TemplatesPage';
 import { PpmDashboard } from './features/ppm/PpmDashboard';
 import { GanttView } from '@/features/gantt/GanttView';
+import { ResourceGrid } from '@/features/resources/ResourceGrid';
+import { TimesheetWeekly } from '@/features/timesheets/TimesheetWeekly';
+import { TimesheetApproval } from '@/features/timesheets/TimesheetApproval';
+import { PortfolioList } from '@/features/portfolios/PortfolioList';
+import { PortfolioDashboard } from '@/features/portfolios/PortfolioDashboard';
+import { PortfolioRoadmap } from '@/features/portfolios/PortfolioRoadmap';
+import { RoleGuard } from './components/RoleGuard';
 import { useAuthStore } from './store/authStore';
 
 function App() {
@@ -26,10 +33,20 @@ function App() {
 
                 <Route path="/" element={<DashboardLayout />}>
                     <Route index element={<DashboardOverview />} />
+                    <Route path="portfolios" element={<PortfolioList />} />
+                    <Route path="portfolios/:id" element={<PortfolioDashboard />} />
+                    <Route path="portfolios/:id/roadmap" element={<PortfolioRoadmap />} />
                     <Route path="ppm" element={<PpmDashboard />} />
                     <Route path="tasks" element={<TaskList />} />
                     <Route path="templates" element={<TemplatesPage />} />
                     <Route path="gantt" element={<GanttView />} />
+                    <Route path="resources" element={<ResourceGrid />} />
+                    <Route path="timesheets" element={<TimesheetWeekly />} />
+                    <Route path="timesheets/approval" element={
+                        <RoleGuard allowedRoles={['PROJECT_MANAGER', 'ADMIN', 'OWNER']}>
+                            <TimesheetApproval />
+                        </RoleGuard>
+                    } />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

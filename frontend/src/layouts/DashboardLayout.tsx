@@ -2,24 +2,43 @@ import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Button } from '@/components/ui/button';
-import { Menu, UserCircle, LogOut, CheckSquare, FileText, LayoutDashboard, Moon, Sun, Briefcase, LayoutList } from 'lucide-react';
+import { Menu, UserCircle, LogOut, CheckSquare, FileText, LayoutDashboard, Moon, Sun, Briefcase, LayoutList, Users, Clock, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkspaceSwitcher } from '@/features/workspaces/WorkspaceSwitcher';
 import { InviteMemberDialog } from '@/features/workspaces/InviteMemberDialog';
 import { AIChatBot } from '@/components/AIChatBot';
 import { api } from '@/api/axios';
+import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 
 const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-    { to: '/ppm', icon: Briefcase, label: 'PPM & Portfolios' },
+    { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
+    { to: '/ppm', icon: LayoutList, label: 'PPM & Programs' },
     { to: '/gantt', icon: LayoutList, label: 'Gantt Chart' },
     { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
+    { to: '/resources', icon: Users, label: 'Resources' },
+    { to: '/timesheets', icon: Clock, label: 'My Timesheet' },
     { to: '/templates', icon: FileText, label: 'Templates' },
 ];
 
 export function DashboardLayout() {
     const { user, logout } = useAuthStore();
     const { sidebarOpen, toggleSidebar, darkMode, toggleDarkMode } = useUIStore();
+    const workspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+
+    // Fetching role natively to display approval conditionally
+    const { data: myMemberData } = useQuery({
+        queryKey: ['workspaceMemberRoles', workspaceId],
+        queryFn: async () => {
+             const res = await api.get(`/workspaces/${workspaceId}/members`);
+             const me = res.data.find((m: any) => m.userId === user?.id);
+             return me;
+        },
+        enabled: !!workspaceId && !!user?.id
+    });
+
+    const isPM = myMemberData?.role === 'PROJECT_MANAGER' || myMemberData?.role === 'ADMIN' || myMemberData?.role === 'OWNER';
 
     const handleLogout = async () => {
         try {
@@ -74,6 +93,23 @@ export function DashboardLayout() {
                             {label}
                         </NavLink>
                     ))}
+                    {isPM && (
+                        <NavLink
+                            key="/timesheets/approval"
+                            to="/timesheets/approval"
+                            className={({ isActive }) =>
+                                cn(
+                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-smooth",
+                                    isActive
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )
+                            }
+                        >
+                            <CheckCircle className="h-4 w-4" />
+                            Timesheet Approval
+                        </NavLink>
+                    )}
                 </nav>
 
                 {/* User section at bottom */}

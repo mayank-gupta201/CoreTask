@@ -4,6 +4,7 @@ import { db } from '../db';
 import { taskActivities, tasks, milestones, users, taskAssignments, taskDependencies } from '../db/schema';
 import { eq, isNull, and } from 'drizzle-orm';
 import { cacheService, CacheService } from './cache.service';
+import { dashboardService } from './dashboard.service';
 
 export class TaskService {
     private coerceDates<T extends Record<string, any>>(data: T): T {
@@ -18,7 +19,10 @@ export class TaskService {
         getIO().to(`workspace_${workspaceId}`).emit('taskCreated', task);
         
         // Invalidate caching
-        await cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`);
+        await Promise.all([
+            cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`),
+            dashboardService.clearDashboardCache(workspaceId)
+        ]);
         
         return task;
     }
@@ -69,7 +73,10 @@ export class TaskService {
         }
 
         // Invalidate caching
-        await cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`);
+        await Promise.all([
+            cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`),
+            dashboardService.clearDashboardCache(workspaceId)
+        ]);
 
         return task;
     }
@@ -82,7 +89,10 @@ export class TaskService {
         getIO().to(`workspace_${workspaceId}`).emit('taskDeleted', { id, workspaceId });
         
         // Invalidate caching
-        await cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`);
+        await Promise.all([
+            cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`),
+            dashboardService.clearDashboardCache(workspaceId)
+        ]);
 
         return true;
     }
@@ -111,7 +121,10 @@ export class TaskService {
         if (updated) {
             getIO().to(`workspace_${task.workspaceId}`).emit('taskUpdated', updated);
             // Invalidate caching
-            await cacheService.invalidatePattern(`dashboard:workspace:${task.workspaceId}*`);
+            await Promise.all([
+                cacheService.invalidatePattern(`dashboard:workspace:${task.workspaceId}*`),
+                dashboardService.clearDashboardCache(task.workspaceId)
+            ]);
         }
         return updated;
     }

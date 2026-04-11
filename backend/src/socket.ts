@@ -18,6 +18,12 @@ export interface ServerToClientEvents {
     'assignment:created': (payload: { taskId: string, userId: string, allocationPercent: number }) => void;
     'assignment:removed': (payload: { taskId: string, userId: string }) => void;
     'resource:overallocated': (payload: { userId: string, userName: string, overAllocatedDates: string[] }) => void;
+
+    // Timesheets (PROMPT 2C)
+    'timelog:added': (payload: { timesheetId: string, logId: string }) => void;
+    'timesheet:submitted': (payload: { timesheetId: string, userId: string }) => void;
+    'timesheet:approved': (payload: { timesheetId: string, userId: string }) => void;
+    'timesheet:rejected': (payload: { timesheetId: string, userId: string }) => void;
 }
 
 export interface ClientToServerEvents {

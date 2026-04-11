@@ -77,3 +77,6 @@ emailWorker.on('failed', (job, err) => {
     logger.error(`Job with id ${job?.id} has failed with ${err.message}`);
 });
 
+// Start node-cron routines
+import '../workers/timesheetReminderWorker';
+
