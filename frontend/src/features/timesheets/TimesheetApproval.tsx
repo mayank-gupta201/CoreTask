@@ -19,7 +19,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Download, Check, X, Eye, CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { io } from 'socket.io-client';
+import { useSocket } from '@/hooks/useSocket';
 
 // Type for a timesheet row
 interface TimesheetRow {
@@ -63,24 +63,24 @@ export const TimesheetApproval = () => {
     const [approveTarget, setApproveTarget] = useState<string | null>(null);
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
 
+
     // Socket.io listener for real-time submitted events
+    const socket = useSocket();
+    
     useEffect(() => {
-        const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:4000';
-        const socket = io(socketUrl, { withCredentials: true });
-
-        if (workspaceId) {
-            socket.emit('joinWorkspace', workspaceId);
-        }
-
-        socket.on('timesheet:submitted', (data) => {
+        if (!workspaceId || !socket) return;
+        
+        const handleTimesheetSubmitted = (data: any) => {
             toast.info(`New timesheet submitted by ${data?.userName || 'a team member'}`, { icon: '🔔' });
             queryClient.invalidateQueries({ queryKey: ['timesheets', 'approvals'] });
-        });
+        };
+
+        socket.on('timesheet:submitted', handleTimesheetSubmitted);
 
         return () => {
-            socket.disconnect();
+            socket.off('timesheet:submitted', handleTimesheetSubmitted);
         };
-    }, [workspaceId, queryClient]);
+    }, [workspaceId, queryClient, socket]);
 
     // Fetch timesheets
     const { data: timesheets = [], isLoading } = useQuery({

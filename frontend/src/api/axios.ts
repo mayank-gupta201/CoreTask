@@ -90,12 +90,9 @@ api.interceptors.response.use(
             }
         }
 
-        if (error.response?.status === 403) {
-            useAuthStore.getState().logout();
-            if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
-            }
-        }
+        // 403 errors are permission-denied from checkPermission middleware.
+        // Do NOT force-logout — let the calling component display the error.
+        // Only 401 (unauthorized/expired token) should trigger logout flow.
         return Promise.reject(error);
     }
 );

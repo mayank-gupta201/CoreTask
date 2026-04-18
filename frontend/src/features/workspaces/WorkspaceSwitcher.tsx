@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/axios';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,13 @@ interface Workspace {
 
 export function WorkspaceSwitcher() {
     const { activeWorkspaceId, setActiveWorkspace } = useWorkspaceStore();
+    const queryClient = useQueryClient();
+
+    const handleWorkspaceChange = (id: string) => {
+        setActiveWorkspace(id);
+        // Clear all queries as we switched workspace context
+        queryClient.clear();
+    };
 
     const { data: workspaces, isLoading } = useQuery<Workspace[]>({
         queryKey: ['workspaces'],
@@ -25,6 +32,7 @@ export function WorkspaceSwitcher() {
         if (!isLoading && workspaces && workspaces.length > 0) {
             const isValidWorkspace = workspaces.some(w => w.id === activeWorkspaceId);
             if (!activeWorkspaceId || !isValidWorkspace) {
+                // Don't call queryClient.clear here initially, just set the ID
                 setActiveWorkspace(workspaces[0].id);
             }
         }
@@ -35,7 +43,7 @@ export function WorkspaceSwitcher() {
     }
 
     return (
-        <Select value={activeWorkspaceId || ''} onValueChange={setActiveWorkspace}>
+        <Select value={activeWorkspaceId || ''} onValueChange={handleWorkspaceChange}>
             <SelectTrigger className="w-[180px] h-9 bg-background">
                 <SelectValue placeholder="Select a workspace" />
             </SelectTrigger>

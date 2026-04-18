@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useResourceStore } from '@/store/resourceStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { api } from '@/api/axios';
-import { io, Socket } from 'socket.io-client';
+import { useSocket } from '@/hooks/useSocket';
 import { toast } from 'sonner';
 import { addDays, addWeeks, subWeeks, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
 
@@ -21,31 +21,31 @@ export function ResourceGrid() {
     const { dateFrom, dateTo, viewMode, expandedMembers, setDateRange, setViewMode, toggleMemberExpand } = useResourceStore();
     const [overAllocatedUsers, setOverAllocatedUsers] = useState<Set<string>>(new Set());
 
+
     // Connect to Socket.io for Realtime assignments feedback
+    const socket = useSocket();
+    
     useEffect(() => {
-        if (!activeWorkspaceId) return;
+        if (!activeWorkspaceId || !socket) return;
         
-        const socketURL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:4000';
-        const socket: Socket = io(socketURL, { transports: ['websocket'] });
-
-        socket.on('connect', () => {
-            socket.emit('joinWorkspace', activeWorkspaceId);
-        });
-
-        socket.on('assignment:created', () => queryClient.invalidateQueries({ queryKey: ['resources', activeWorkspaceId] }));
-        socket.on('assignment:removed', () => queryClient.invalidateQueries({ queryKey: ['resources', activeWorkspaceId] }));
-
-        socket.on('resource:overallocated', (data: { userName: string }) => {
+        const handleAssignmentUpdate = () => queryClient.invalidateQueries({ queryKey: ['resources', activeWorkspaceId] });
+        const handleOverallocated = (data: { userName: string }) => {
             queryClient.invalidateQueries({ queryKey: ['resources', activeWorkspaceId] });
             toast.error(`Resource Alert: ${data.userName} is overallocated!`, {
                 icon: <AlertTriangle className="h-4 w-4 text-red-500" />
             });
-        });
+        };
+
+        socket.on('assignment:created', handleAssignmentUpdate);
+        socket.on('assignment:removed', handleAssignmentUpdate);
+        socket.on('resource:overallocated', handleOverallocated);
 
         return () => {
-            socket.disconnect();
+            socket.off('assignment:created', handleAssignmentUpdate);
+            socket.off('assignment:removed', handleAssignmentUpdate);
+            socket.off('resource:overallocated', handleOverallocated);
         };
-    }, [activeWorkspaceId, queryClient]);
+    }, [activeWorkspaceId, queryClient, socket]);
 
     // Fetch grid Data
     const { data: gridData = [], isLoading } = useQuery({

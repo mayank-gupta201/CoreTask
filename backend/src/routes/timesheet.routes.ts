@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
+import { requireWorkspace } from '../middlewares/workspace.middleware';
 import { checkPermission } from '../middlewares/permission.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import { timesheetController, logTimeSchema, updateLogSchema } from '../controllers/timesheet.controller';
@@ -7,6 +8,7 @@ import { z } from 'zod';
 
 export const timesheetRoutes = Router({ mergeParams: true });
 timesheetRoutes.use(authenticate as any);
+timesheetRoutes.use(requireWorkspace as any);
 
 // Base Member Functionality
 timesheetRoutes.get('/current',

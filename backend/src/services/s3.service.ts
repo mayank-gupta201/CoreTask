@@ -117,6 +117,35 @@ export class S3Service {
     }
 
     /**
+     * Upload a raw Buffer to S3 (used by report generation).
+     */
+    async uploadBuffer(buffer: Buffer, key: string, contentType: string): Promise<string> {
+        const s3 = getS3Client();
+        const bucket = getBucket();
+
+        try {
+            await s3.send(new PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: buffer,
+                ContentType: contentType,
+            }));
+
+            const region = process.env.AWS_REGION;
+            const fileUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+            logger.info({ key, bucket }, 'Buffer uploaded to S3');
+            return fileUrl;
+        } catch (error: any) {
+            logger.error({ err: error }, 'S3 buffer upload failed');
+            throw new ProblemDetails({
+                title: 'Upload Failed',
+                status: 500,
+                detail: error.message || 'Failed to upload buffer to S3.',
+            });
+        }
+    }
+
+    /**
      * Extracts the S3 object key from a full S3 URL.
      * Handles both path-style and virtual-hosted-style URLs.
      */

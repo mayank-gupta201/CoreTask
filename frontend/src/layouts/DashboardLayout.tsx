@@ -20,6 +20,7 @@ const navItems = [
     { to: '/resources', icon: Users, label: 'Resources' },
     { to: '/timesheets', icon: Clock, label: 'My Timesheet' },
     { to: '/templates', icon: FileText, label: 'Templates' },
+    { to: '/reports', icon: FileText, label: 'Reports' },
 ];
 
 export function DashboardLayout() {

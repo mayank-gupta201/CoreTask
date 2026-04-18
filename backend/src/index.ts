@@ -10,6 +10,7 @@ import { emailQueue, connection } from './queue';
 import { createRecurringTaskWorker } from './workers/recurringTaskWorker';
 import './workers/criticalPathWorker';
 import './workers/utilizationWorker';
+import './workers/reportWorker';
 import passport from './middlewares/passport.middleware';
 // Initialize db connection and drizzle
 import './db';

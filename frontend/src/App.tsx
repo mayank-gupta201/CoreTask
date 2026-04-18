@@ -16,6 +16,8 @@ import { TimesheetApproval } from '@/features/timesheets/TimesheetApproval';
 import { PortfolioList } from '@/features/portfolios/PortfolioList';
 import { PortfolioDashboard } from '@/features/portfolios/PortfolioDashboard';
 import { PortfolioRoadmap } from '@/features/portfolios/PortfolioRoadmap';
+import { ReportBuilder } from '@/features/reports/ReportBuilder';
+import { ReportTemplates } from '@/features/reports/ReportTemplates';
 import { RoleGuard } from './components/RoleGuard';
 import { useAuthStore } from './store/authStore';
 
@@ -47,6 +49,8 @@ function App() {
                             <TimesheetApproval />
                         </RoleGuard>
                     } />
+                    <Route path="reports" element={<ReportBuilder />} />
+                    <Route path="reports/templates" element={<ReportTemplates />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

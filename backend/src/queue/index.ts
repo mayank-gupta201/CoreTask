@@ -25,6 +25,9 @@ export const criticalPathQueue = new Queue('criticalPathQueue', { connection: co
 // Utilization compute queue - detects >100% capacity overloading
 export const utilizationQueue = new Queue('utilizationQueue', { connection: connection as any });
 
+// Report generation queue - background generation of PDF/DOCX/XLSX reports
+export const reportGenerationQueue = new Queue('reportGenerationQueue', { connection: connection as any });
+
 
 // Schedule the recurring job (runs at 00:00 every day)
 recurringTasksQueue.upsertJobScheduler(

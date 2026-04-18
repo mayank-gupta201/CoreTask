@@ -11,6 +11,7 @@ import { timesheetRoutes } from './timesheet.routes';
 import { ppmRoutes } from './ppm.routes';
 import { webhookRouter } from './github-webhook.routes';
 import { dashboardRouter } from './dashboard.routes';
+import { reportRoutes } from './report.routes';
 import { apiLimiter, authLimiter } from '../middlewares/rateLimiter.middleware';
 
 export const apiRouter = Router();
@@ -33,6 +34,12 @@ apiRouter.use('/workspaces/:workspaceId/timesheets', apiLimiter as any, timeshee
 
 // PROMPT 3C: Dashboard Context
 apiRouter.use('/workspaces/:workspaceId/dashboard', apiLimiter as any, dashboardRouter);
+
+// PROMPT 3B: Reporting Engine
+apiRouter.use('/workspaces/:workspaceId/reports', apiLimiter as any, reportRoutes);
+
+// PPM (Portfolio Program Management) composite routes
+apiRouter.use('/ppm', apiLimiter as any, ppmRoutes);
 
 // Feature 7: Webhook routes — no rate limiter (GitHub may retry on failure)
 apiRouter.use('/webhooks', webhookRouter);

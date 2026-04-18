@@ -1,22 +1,24 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
+import crypto from 'crypto';
 import { logger } from '../middlewares/logger.middleware';
 import { ProblemDetails } from '../errors';
+import { cacheService } from './cache.service';
 
 // Lazy initialization — reads .env at call time, not at import time
-let _genAI: GoogleGenerativeAI | null = null;
-function getGenAI() {
-    if (!_genAI) {
-        const key = process.env.GEMINI_API_KEY || '';
+let _groq: Groq | null = null;
+function getGroq() {
+    if (!_groq) {
+        const key = process.env.GROQ_API_KEY || '';
         if (!key) {
             throw new ProblemDetails({
                 title: 'AI Service Unavailable',
                 status: 503,
-                detail: 'GEMINI_API_KEY is not configured on the server.',
+                detail: 'GROQ_API_KEY is not configured on the server.',
             });
         }
-        _genAI = new GoogleGenerativeAI(key);
+        _groq = new Groq({ apiKey: key });
     }
-    return _genAI;
+    return _groq;
 }
 
 const CHAT_SYSTEM_PROMPT = `You are TaskMaster AI, a smart productivity assistant embedded in a task management application.
@@ -48,12 +50,35 @@ User: "Help me plan a website launch"
 You: "Here are the tasks for your website launch! 🚀
 <tasks>[{"title":"Finalize website design","priority":"HIGH","category":"Design"},{"title":"Set up hosting and domain","priority":"HIGH","category":"DevOps"},{"title":"Write launch announcement","priority":"MEDIUM","category":"Marketing"}]</tasks>"`;
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function callGroqWithRetry(messages: any[], maxRetries = 3): Promise<string> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const groq = getGroq();
+            const response = await groq.chat.completions.create({
+                messages: messages,
+                model: 'llama-3.1-8b-instant',
+            });
+            return response.choices[0]?.message?.content || '';
+        } catch (error: any) {
+            if (error?.status === 429) {
+                const backoffDelay = 5000 * Math.pow(2, attempt - 1);
+                logger.warn(`Rate limit exceeded on Groq API. Attempt ${attempt} of ${maxRetries}. Retrying in ${backoffDelay}ms...`);
+                if (attempt < maxRetries) {
+                    await delay(backoffDelay);
+                    continue;
+                }
+            }
+            throw error; // Throw immediately for non-429 errors or if we exhaust retries
+        }
+    }
+    throw new Error('Groq API failed after max retries');
+}
+
 export class AIService {
     async breakdownTask(goalContext: string) {
         try {
-            const genAI = getGenAI();
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
             const prompt = `You are an expert productivity assistant and project manager. The user wants to achieve the following goal or task: "${goalContext}". 
             Break this down into smaller, highly actionable, and logical sub-tasks. 
             Return the result ONLY as a valid JSON array of objects. Do not include markdown formatting like \`\`\`json or \`\`\`. 
@@ -65,24 +90,30 @@ export class AIService {
             }
             Generate between 3 to 7 high-quality tasks depending on the complexity of the goal.`;
 
-            const result = await model.generateContent(prompt);
-            const responseText = result.response.text();
+            // Hash the goalContext to use as a cache key
+            const hash = crypto.createHash('sha256').update(goalContext).digest('hex');
+            const cacheKey = `ai:subtask:${hash}`;
 
-            let tasks = [];
-            try {
-                const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-                tasks = JSON.parse(cleanedText);
-            } catch (parseError) {
-                logger.error({ err: parseError, raw: responseText }, 'Failed to parse AI response as JSON');
-                throw new ProblemDetails({
-                    title: 'AI Parsing Error',
-                    status: 500,
-                    detail: `The AI provided an invalid response format: ${responseText}`,
-                });
-            }
+            // Check cache before computing; if miss, calls fetcher and stores for 24 hours (86400s)
+            const tasks = await cacheService.getOrSet(cacheKey, async () => {
+                const responseText = await callGroqWithRetry([{ role: 'user', content: prompt }]);
+                
+                let parsedTasks: any[] = [];
+                try {
+                    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    parsedTasks = JSON.parse(cleanedText);
+                } catch (parseError) {
+                    logger.error({ err: parseError, raw: responseText }, 'Failed to parse AI response as JSON');
+                    throw new ProblemDetails({
+                        title: 'AI Parsing Error',
+                        status: 500,
+                        detail: `The AI provided an invalid response format: ${responseText}`,
+                    });
+                }
+                return parsedTasks;
+            }, 86400);
 
             return tasks;
-
         } catch (error: any) {
             logger.error({ err: error }, 'Failed to generate task breakdown from AI');
             if (error instanceof ProblemDetails) throw error;
@@ -103,25 +134,20 @@ export class AIService {
 
     async chat(message: string, history: { role: string; content: string }[]) {
         try {
-            const genAI = getGenAI();
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-            // Build conversation history for Gemini
+            // Build conversation history for Groq
             const chatHistory = history.map((msg) => ({
-                role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
-                parts: [{ text: msg.content }],
+                role: msg.role === 'assistant' ? 'assistant' : 'user',
+                content: msg.content,
             }));
 
-            const chat = model.startChat({
-                history: [
-                    { role: 'user' as const, parts: [{ text: 'System instruction: ' + CHAT_SYSTEM_PROMPT }] },
-                    { role: 'model' as const, parts: [{ text: 'Understood! I am TaskMaster AI. I can help you create tasks, answer questions, and assist with productivity. How can I help you today?' }] },
-                    ...chatHistory,
-                ],
-            });
+            const messages = [
+                { role: 'system', content: CHAT_SYSTEM_PROMPT },
+                { role: 'assistant', content: 'Understood! I am TaskMaster AI. I can help you create tasks, answer questions, and assist with productivity. How can I help you today?' },
+                ...chatHistory,
+                { role: 'user', content: message }
+            ];
 
-            const result = await chat.sendMessage(message);
-            const responseText = result.response.text();
+            const responseText = await callGroqWithRetry(messages);
 
             // Parse out any task creation actions
             let tasks: any[] = [];

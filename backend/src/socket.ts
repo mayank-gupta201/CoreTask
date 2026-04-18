@@ -24,6 +24,9 @@ export interface ServerToClientEvents {
     'timesheet:submitted': (payload: { timesheetId: string, userId: string }) => void;
     'timesheet:approved': (payload: { timesheetId: string, userId: string }) => void;
     'timesheet:rejected': (payload: { timesheetId: string, userId: string }) => void;
+
+    // Reports (PROMPT 3B)
+    'report:ready': (payload: { reportId: string, downloadUrl: string, fileName: string, format: string, reportType: string }) => void;
 }
 
 export interface ClientToServerEvents {

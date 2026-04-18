@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { db } from '../db';
 import { tasks } from '../db/schema';
-import { isNotNull, ne } from 'drizzle-orm';
+import { isNotNull, ne, and, eq } from 'drizzle-orm';
 import { logger } from '../middlewares/logger.middleware';
 import { getIO } from '../socket';
 
@@ -64,6 +64,24 @@ export function createRecurringTaskWorker(connection: any) {
                 nextDueNormalized.setHours(0, 0, 0, 0);
 
                 if (nextDueNormalized.getTime() <= tomorrow.getTime()) {
+                    // Deduplication guard: check if instance already exists for this due date
+                    const existingInstances = await db.select({ id: tasks.id })
+                        .from(tasks)
+                        .where(
+                            and(
+                                eq(tasks.workspaceId, task.workspaceId),
+                                eq(tasks.title, task.title),
+                                eq(tasks.isRecurringInstance, true),
+                                eq(tasks.dueDate, nextDue)
+                            )
+                        )
+                        .limit(1);
+
+                    if (existingInstances.length > 0) {
+                        logger.info(`[RecurringTaskWorker] Skipping duplicate instance for task "${task.title}" on ${nextDue.toISOString()}`);
+                        continue;
+                    }
+
                     const [newTask] = await db.insert(tasks).values({
                         title: task.title,
                         description: task.description,

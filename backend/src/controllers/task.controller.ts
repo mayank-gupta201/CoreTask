@@ -26,7 +26,7 @@ export const updateTaskSchema = z.object({
     body: z.object({
         title: z.string().min(1).optional(),
         description: z.string().optional(),
-        status: z.string().optional(),
+        status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
         priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
         dueDate: z.string().datetime().optional(),
         category: z.string().optional(),
@@ -119,6 +119,13 @@ export class TaskController {
         try {
             const workspaceId = req.workspace!.id;
             const taskId = String(req.params.id);
+            
+            const task = await taskService.getTaskById(taskId, workspaceId);
+            const userRole = req.workspace!.role;
+            if (task.userId !== req.user!.userId && userRole !== 'OWNER' && userRole !== 'ADMIN') {
+                return next(new ProblemDetails({ title: 'Forbidden', status: 403, detail: 'You do not have permission to delete this task' }));
+            }
+
             await taskService.deleteTask(taskId, workspaceId);
             return res.status(204).send();
         } catch (error: any) {

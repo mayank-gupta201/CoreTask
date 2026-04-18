@@ -5,12 +5,13 @@ import { ProblemDetails } from '../errors';
 
 export const requireWorkspace = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const workspaceId = req.headers['x-workspace-id'] as string;
-
-        if (!workspaceId) {
-            return next(new ProblemDetails({ title: 'Bad Request', status: 400, detail: 'x-workspace-id header is required' }));
+        const rawWorkspaceId = req.headers['x-workspace-id'];
+        
+        if (!rawWorkspaceId || Array.isArray(rawWorkspaceId) || rawWorkspaceId.trim() === '') {
+            return next(new ProblemDetails({ title: 'Bad Request', status: 400, detail: 'x-workspace-id header is required and must be a single string' }));
         }
-
+        
+        const workspaceId = rawWorkspaceId as string;
         const userId = req.user!.userId;
         const membership = await workspaceService.verifyMembership(workspaceId, userId);
 

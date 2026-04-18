@@ -236,14 +236,39 @@ export class AuthService {
             const decoded = jwt.verify(refreshToken, REFRESH_SECRET) as any;
             const user = await userRepository.findById(decoded.userId);
 
-            if (!user || user.refreshToken !== refreshToken) {
+            if (!user) {
                 throw new Error('Invalid refresh token');
             }
 
+            const isCurrentToken = user.refreshToken === refreshToken;
+            const isPreviousToken =
+                user.previousRefreshToken === refreshToken &&
+                user.previousRefreshTokenExpiresAt &&
+                new Date(user.previousRefreshTokenExpiresAt) > new Date();
+
+            if (!isCurrentToken && !isPreviousToken) {
+                throw new Error('Invalid refresh token');
+            }
+
+            // If using the previous (grace-period) token, return the CURRENT tokens
+            // without re-rotating — the rotation already happened
+            if (isPreviousToken && !isCurrentToken) {
+                const newAccessToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '15m' });
+                await auditService.logAction({ userId: user.id, action: 'TOKEN_REFRESHED_GRACE', resource: 'Auth' });
+                return { accessToken: newAccessToken, refreshToken: user.refreshToken! };
+            }
+
+            // Normal rotation: current token → previous with 30s grace period
             const newAccessToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '15m' });
             const newRefreshToken = jwt.sign({ userId: user.id }, REFRESH_SECRET, { expiresIn: '7d' });
 
-            await userRepository.update(user.id, { refreshToken: newRefreshToken } as any);
+            const gracePeriodExpiry = new Date(Date.now() + 30 * 1000); // 30 seconds
+
+            await userRepository.update(user.id, {
+                refreshToken: newRefreshToken,
+                previousRefreshToken: refreshToken,
+                previousRefreshTokenExpiresAt: gracePeriodExpiry,
+            } as any);
             await auditService.logAction({ userId: user.id, action: 'TOKEN_REFRESHED', resource: 'Auth' });
 
             return { accessToken: newAccessToken, refreshToken: newRefreshToken };
@@ -253,7 +278,11 @@ export class AuthService {
     }
 
     async logout(userId: string) {
-        await userRepository.update(userId, { refreshToken: null } as any);
+        await userRepository.update(userId, {
+            refreshToken: null,
+            previousRefreshToken: null,
+            previousRefreshTokenExpiresAt: null,
+        } as any);
         await auditService.logAction({ userId, action: 'USER_LOGOUT', resource: 'Auth' });
         return true;
     }

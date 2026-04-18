@@ -28,22 +28,14 @@ export class PpmController {
     async getTimesheet(req: AuthRequest, res: Response) {
         try {
             const userId = req.user!.userId;
-            const workspaceId = req.headers['x-workspace-id'] as string;
+            const workspaceId = req.workspace!.id;
             const { weekStart, weekEnd } = req.query;
-
-            if (!workspaceId) {
-                return res.status(400).json({ message: 'x-workspace-id header is required' });
-            }
-
-            const StringWorkspaceId = workspaceId as string;
-            const StringWeekStart = weekStart as string;
-            const StringWeekEnd = weekEnd as string;
 
             const timesheet = await ppmService.getOrCreateTimesheet(
                 userId, 
-                StringWorkspaceId, 
-                StringWeekStart, 
-                StringWeekEnd
+                workspaceId, 
+                weekStart as string, 
+                weekEnd as string
             );
             res.json(timesheet);
         } catch (error: any) {

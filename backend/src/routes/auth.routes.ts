@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authController, authSchema, verifyEmailSchema, forgotPasswordSchema, resetPasswordSchema } from '../controllers/auth.controller';
 import { validate } from '../middlewares/validate.middleware';
+import { authenticate } from '../middlewares/auth.middleware';
 import passport from '../middlewares/passport.middleware';
 
 export const authRouter = Router();
@@ -12,7 +13,7 @@ const asyncHandler = (fn: Function) => (req: any, res: any, next: any) =>
 authRouter.post('/register', validate(authSchema), asyncHandler(authController.register));
 authRouter.post('/login', validate(authSchema), asyncHandler(authController.login));
 authRouter.post('/refresh', asyncHandler(authController.refresh));
-authRouter.post('/logout', asyncHandler(authController.logout));
+authRouter.post('/logout', authenticate as any, asyncHandler(authController.logout));
 
 // Google OAuth routes
 authRouter.get('/google', passport.authenticate('google', { session: false }));
