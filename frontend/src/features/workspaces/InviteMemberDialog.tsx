@@ -38,8 +38,8 @@ export function InviteMemberDialog() {
             const res = await api.post(`/workspaces/${activeWorkspaceId}/invites`, data);
             return res.data;
         },
-        onSuccess: () => {
-            setMessage({ type: 'success', text: 'Member invited successfully.' });
+        onSuccess: (data) => {
+            setMessage({ type: 'success', text: data?.message || 'Invitation sent successfully!' });
             reset();
             setTimeout(() => {
                 setOpen(false);

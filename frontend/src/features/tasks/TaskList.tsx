@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import { api } from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, Calendar, LayoutGrid, LayoutList, Sparkles, Loader2, Repeat, X, Users, ChevronRight, Search, Filter } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { useSocket } from '@/hooks/useSocket';
@@ -298,7 +298,7 @@ export function TaskList() {
         getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     });
 
-    const allTasks = tasksData?.pages.flatMap(p => p.items) || [];
+    const allTasks = useMemo(() => tasksData?.pages.flatMap(p => p.items) || [], [tasksData]);
     const totalCount = tasksData?.pages[0]?.total || 0;
 
     // Feature 6: Track subtask counts per parent task

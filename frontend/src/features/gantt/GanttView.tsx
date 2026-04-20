@@ -9,7 +9,7 @@ import { useGanttStore } from '@/store/ganttStore';
 import { DependencyModal } from './DependencyModal';
 import { TaskSheet } from '../tasks/TaskSheet';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, LayoutList } from 'lucide-react';
+import { Loader2, Plus, LayoutList, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -45,7 +45,7 @@ export function GanttView() {
     });
 
     // Fetch Gantt specific payload
-    const { data: ganttData, isLoading } = useQuery({
+    const { data: ganttData, isLoading, error: ganttError } = useQuery({
         queryKey: ['gantt', activeWorkspaceId],
         queryFn: async () => {
             if (!activeWorkspaceId) return null;
@@ -53,7 +53,25 @@ export function GanttView() {
             return res.data;
         },
         enabled: !!activeWorkspaceId,
+        retry: 1,
     });
+
+    // Fallback task list for DependencyModal dropdowns
+    // Uses the regular tasks endpoint if gantt data has no tasks
+    const { data: fallbackTasks } = useQuery({
+        queryKey: ['tasks-list', activeWorkspaceId],
+        queryFn: async () => {
+            if (!activeWorkspaceId) return [];
+            const res = await api.get('/tasks', {
+                params: { cursor: undefined, limit: 200 }
+            });
+            return res.data?.items || [];
+        },
+        enabled: !!activeWorkspaceId && (!ganttData?.tasks || ganttData.tasks.length === 0),
+    });
+
+    // Determine task list for modal dropdowns: prefer gantt data, fall back to regular tasks
+    const modalTasks = (ganttData?.tasks?.length > 0 ? ganttData.tasks : fallbackTasks) || [];
 
     useEffect(() => {
         if (!socket || !activeWorkspaceId) return;
@@ -95,7 +113,7 @@ export function GanttView() {
         });
     };
 
-    // Format tasks for the library
+    // Format tasks for the library with robust date handling
     const formattedTasks: GanttTaskType[] = [];
 
     if (ganttData) {
@@ -107,16 +125,43 @@ export function GanttView() {
                 DONE: '#10b981', // emerald-500
             };
             
-            const start = t.startDate ? new Date(t.startDate) : new Date();
-            const fallbackEnd = new Date(start);
-            fallbackEnd.setHours(fallbackEnd.getHours() + (t.estimatedHours || 8)); // fallback end
+            // Robust date handling:
+            // 1. Use startDate if available
+            // 2. Fall back to createdAt 
+            // 3. Fall back to today
+            const start = t.startDate 
+                ? new Date(t.startDate) 
+                : t.createdAt 
+                    ? new Date(t.createdAt) 
+                    : new Date();
+
+            // Calculate end date with proper numeric parsing
+            const estimatedHrs = typeof t.estimatedHours === 'number' 
+                ? t.estimatedHours 
+                : parseFloat(t.estimatedHours) || 0;
+            
+            let end: Date;
+            if (t.dueDate) {
+                end = new Date(t.dueDate);
+            } else {
+                // Fallback: start + estimated hours, minimum 1 day
+                end = new Date(start);
+                const hoursToAdd = Math.max(estimatedHrs, 24); // At least 1 day span
+                end.setHours(end.getHours() + hoursToAdd);
+            }
+
+            // CRITICAL: gantt-task-react requires end > start strictly
+            if (end <= start) {
+                end = new Date(start);
+                end.setDate(end.getDate() + 1);
+            }
 
             formattedTasks.push({
                 id: t.id,
                 name: `[${t.status.replace('_', ' ')}] ${t.title}`,
                 type: 'task',
                 start: start,
-                end: t.dueDate ? new Date(t.dueDate) : fallbackEnd,
+                end: end,
                 progress: t.status === 'DONE' ? 100 : t.status === 'IN_PROGRESS' ? 50 : 0,
                 dependencies: t.dependencies
                     ?.filter((d: any) => d.successorId === t.id && d.type === 'FS') // Map Predecessors -> library uses dependency array string mapping
@@ -205,7 +250,23 @@ export function GanttView() {
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                 )}
-                {formattedTasks.length > 0 ? (
+                {ganttError ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm p-8">
+                        <AlertCircle className="h-8 w-8 text-red-400 mb-3" />
+                        <p className="font-medium text-red-500 mb-1">Failed to load Gantt data</p>
+                        <p className="text-xs text-muted-foreground">
+                            {(ganttError as any)?.response?.data?.message || (ganttError as Error)?.message || 'An unexpected error occurred'}
+                        </p>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-4"
+                            onClick={() => queryClient.invalidateQueries({ queryKey: ['gantt', activeWorkspaceId] })}
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                ) : formattedTasks.length > 0 ? (
                     <Gantt
                         tasks={formattedTasks}
                         viewMode={zoomLevel as any}
@@ -229,7 +290,7 @@ export function GanttView() {
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground text-sm border-dashed">
-                        No tasks to graph yet.
+                        No tasks to graph yet. Create tasks in the Tasks page to see them here.
                     </div>
                 )}
             </div>
@@ -238,7 +299,7 @@ export function GanttView() {
             <DependencyModal 
                 open={dependencyModalOpen} 
                 onClose={() => { setDependencyModalOpen(false); setSelectedTaskId(undefined); }} 
-                tasks={ganttData?.tasks || []} 
+                tasks={modalTasks} 
                 defaultPredecessorId={selectedTaskId}
             />
 

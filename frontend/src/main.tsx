@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './api/queryClient';
 import App from './App';
+import { Toaster } from 'sonner';
 import './index.css';
 
 // Initialize dark mode from localStorage or system preference
@@ -21,6 +22,7 @@ root.render(
     <StrictMode>
         <QueryClientProvider client={queryClient}>
             <App />
+            <Toaster richColors position="top-right" />
         </QueryClientProvider>
     </StrictMode>
 );

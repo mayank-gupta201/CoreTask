@@ -14,7 +14,7 @@ export class PortfolioService {
         });
         
         if (!member || member.role === 'MEMBER' || member.role === 'VIEWER') {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Only Admins or Owners can create Portfolios.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Only Admins or Owners can create Portfolios.' });
         }
 
         return await portfolioRepository.createPortfolio({
@@ -34,7 +34,7 @@ export class PortfolioService {
         });
 
         if (!member) {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Unauthorized to view portfolios for this workspace.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Unauthorized to view portfolios for this workspace.' });
         }
 
         return await portfolioRepository.getPortfoliosByUser(userId, workspaceId);
@@ -47,7 +47,7 @@ export class PortfolioService {
             where: and(eq(workspaceMembers.workspaceId, portfolio.workspaceId), eq(workspaceMembers.userId, userId))
         });
 
-        if (!member) throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Unauthorized access to portfolio.' });
+        if (!member) throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Unauthorized access to portfolio.' });
 
         return portfolio;
     }
@@ -57,7 +57,7 @@ export class PortfolioService {
         
         // Ensure user is owner of the portfolio
         if (portfolio.ownerId !== userId) {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Only the portfolio owner can update it.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Only the portfolio owner can update it.' });
         }
 
         return await portfolioRepository.updatePortfolio(id, data);
@@ -67,7 +67,7 @@ export class PortfolioService {
         const portfolio = await this.getPortfolioById(id, userId);
         
         if (portfolio.ownerId !== userId) {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Only the portfolio owner can delete it.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Only the portfolio owner can delete it.' });
         }
 
         return await portfolioRepository.deletePortfolio(id);
@@ -100,7 +100,7 @@ export class PortfolioService {
 
     async createProgram(portfolioId: string, userId: string, data: { name: string, description?: string, startDate?: Date, endDate?: Date }) {
         const portfolio = await this.getPortfolioById(portfolioId, userId);
-        if (portfolio.ownerId !== userId) throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Only the portfolio owner can create programs.' });
+        if (portfolio.ownerId !== userId) throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Only the portfolio owner can create programs.' });
 
         return await portfolioRepository.createProgram({ ...data, portfolioId });
     }
@@ -114,7 +114,7 @@ export class PortfolioService {
         // 1. Verify user is OWNER of the portfolio
         const portfolio = await this.getPortfolioById(portfolioId, userId);
         if (portfolio.ownerId !== userId) {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Only the portfolio owner can add projects to programs.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Only the portfolio owner can add projects to programs.' });
         }
 
         // 2. Verify user is also OWNER/ADMIN of the workspace being added
@@ -123,7 +123,7 @@ export class PortfolioService {
         });
 
         if (!targetWorkspaceMember || (targetWorkspaceMember.role !== 'OWNER' && targetWorkspaceMember.role !== 'ADMIN')) {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'You must be an Admin or Owner of the project (workspace) to add it to a program.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'You must be an Admin or Owner of the project (workspace) to add it to a program.' });
         }
 
         return await portfolioRepository.addProjectToProgram(programId, workspaceId);
@@ -132,7 +132,7 @@ export class PortfolioService {
     async removeProjectFromProgram(portfolioId: string, programId: string, workspaceId: string, userId: string) {
         const portfolio = await this.getPortfolioById(portfolioId, userId);
         if (portfolio.ownerId !== userId) {
-            throw new ProblemDetails({ status: 401, title: 'Unauthorized', detail: 'Only the portfolio owner can remove projects from programs.' });
+            throw new ProblemDetails({ status: 403, title: 'Forbidden', detail: 'Only the portfolio owner can remove projects from programs.' });
         }
         
         await portfolioRepository.removeProjectFromProgram(programId, workspaceId);

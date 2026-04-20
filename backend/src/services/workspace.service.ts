@@ -3,6 +3,8 @@ import { userRepository } from '../repositories/user.repository';
 import { ProblemDetails } from '../errors';
 import { emailQueue } from '../queue';
 
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
 export class WorkspaceService {
     async createWorkspace(userId: string, name: string) {
         return await workspaceRepository.create({ name, ownerId: userId });
@@ -26,33 +28,60 @@ export class WorkspaceService {
             });
         }
 
+        // Fetch workspace name and inviter info for the email
+        const workspaces = await workspaceRepository.findByUserId(inviterId);
+        const workspace = workspaces.find(w => w.id === workspaceId);
+        const workspaceName = workspace?.name || 'a workspace';
+
+        const inviter = await userRepository.findById(inviterId);
+        const inviterName = inviter?.email?.split('@')[0] || 'A team member';
+
         const userToInvite = await userRepository.findByEmail(email);
-        if (!userToInvite) {
-            throw new ProblemDetails({
-                title: 'User Not Found',
-                status: 404,
-                detail: 'No user found with this email. Please ask them to register first.',
+
+        if (userToInvite) {
+            // User exists — check if already a member
+            const existingMembership = await workspaceRepository.checkMembership(workspaceId, userToInvite.id);
+            if (existingMembership) {
+                throw new ProblemDetails({
+                    title: 'Already a Member',
+                    status: 400,
+                    detail: 'This user is already a member of the workspace.',
+                });
+            }
+
+            // Add user to workspace
+            await workspaceRepository.addMember(workspaceId, userToInvite.id, 'MEMBER');
+
+            // Send notification email to existing user
+            await emailQueue.add('sendEmail', {
+                to: email,
+                subject: `You've been invited to join "${workspaceName}" on CoreTask`,
+                type: 'WORKSPACE_INVITE_EXISTING',
+                payload: {
+                    workspaceName,
+                    inviterName,
+                    loginUrl: `${CLIENT_URL}/login`,
+                },
             });
-        }
 
-        const existingMembership = await workspaceRepository.checkMembership(workspaceId, userToInvite.id);
-        if (existingMembership) {
-            throw new ProblemDetails({
-                title: 'Already a Member',
-                status: 400,
-                detail: 'This user is already a member of the workspace.',
+            return { message: 'Invitation sent! The user has been added to the workspace.' };
+        } else {
+            // User does NOT exist — send a signup invitation email
+            const registerUrl = `${CLIENT_URL}/register?email=${encodeURIComponent(email)}`;
+
+            await emailQueue.add('sendEmail', {
+                to: email,
+                subject: `You've been invited to join "${workspaceName}" on CoreTask`,
+                type: 'WORKSPACE_INVITE_NEW',
+                payload: {
+                    workspaceName,
+                    inviterName,
+                    registerUrl,
+                },
             });
+
+            return { message: 'Invitation sent! The user will need to sign up to join the workspace.' };
         }
-
-        await workspaceRepository.addMember(workspaceId, userToInvite.id, 'MEMBER');
-
-        await emailQueue.add('sendEmail', {
-            to: email,
-            subject: 'You have been added to a new workspace',
-            text: `You have been added to a workspace by another member. Log in to your dashboard to view your new workspace tasks.`
-        });
-
-        return { message: 'Member invited successfully.' };
     }
 
     // Feature 1: Get workspace members for task assignment

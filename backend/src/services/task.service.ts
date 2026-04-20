@@ -179,7 +179,8 @@ export class TaskService {
             priority: t.priority,
             startDate: t.startDate,
             dueDate: t.dueDate,
-            estimatedHours: t.estimatedHours,
+            createdAt: t.createdAt, // Fallback date when startDate is missing
+            estimatedHours: t.estimatedHours ? parseFloat(t.estimatedHours as string) : null,
             assignees: t.assignments.map(a => ({
                 userId: a.user.id,
                 name: (a.user as any).name || a.user.email, // Best fallback

@@ -81,9 +81,9 @@ api.interceptors.response.use(
             } catch (_error) {
                 processQueue(_error, null);
                 useAuthStore.getState().logout();
-                if (window.location.pathname !== '/login') {
-                    window.location.href = '/login';
-                }
+                // Auth guard in DashboardLayout will redirect to /login
+                // Do NOT use window.location.href here — it bypasses React Router
+                // and breaks SPA navigation state
                 return Promise.reject(_error);
             } finally {
                 isRefreshing = false;
