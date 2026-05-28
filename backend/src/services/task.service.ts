@@ -3,7 +3,7 @@ import { getIO } from '../socket';
 import { db } from '../db';
 import { taskActivities, tasks, milestones, users, taskAssignments, taskDependencies } from '../db/schema';
 import { eq, isNull, and } from 'drizzle-orm';
-import { cacheService, CacheService } from './cache.service';
+import { cacheService } from './cache.service';
 import { dashboardService } from './dashboard.service';
 
 export class TaskService {
@@ -19,10 +19,7 @@ export class TaskService {
         getIO().to(`workspace_${workspaceId}`).emit('taskCreated', task);
         
         // Invalidate caching
-        await Promise.all([
-            cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`),
-            dashboardService.clearDashboardCache(workspaceId)
-        ]);
+        await dashboardService.clearDashboardCache(workspaceId);
         
         return task;
     }
@@ -73,10 +70,7 @@ export class TaskService {
         }
 
         // Invalidate caching
-        await Promise.all([
-            cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`),
-            dashboardService.clearDashboardCache(workspaceId)
-        ]);
+        await dashboardService.clearDashboardCache(workspaceId);
 
         return task;
     }
@@ -89,10 +83,7 @@ export class TaskService {
         getIO().to(`workspace_${workspaceId}`).emit('taskDeleted', { id, workspaceId });
         
         // Invalidate caching
-        await Promise.all([
-            cacheService.invalidatePattern(`dashboard:workspace:${workspaceId}*`),
-            dashboardService.clearDashboardCache(workspaceId)
-        ]);
+        await dashboardService.clearDashboardCache(workspaceId);
 
         return true;
     }
@@ -121,10 +112,7 @@ export class TaskService {
         if (updated) {
             getIO().to(`workspace_${task.workspaceId}`).emit('taskUpdated', updated);
             // Invalidate caching
-            await Promise.all([
-                cacheService.invalidatePattern(`dashboard:workspace:${task.workspaceId}*`),
-                dashboardService.clearDashboardCache(task.workspaceId)
-            ]);
+            await dashboardService.clearDashboardCache(task.workspaceId);
         }
         return updated;
     }

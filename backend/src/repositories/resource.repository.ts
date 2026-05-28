@@ -56,8 +56,8 @@ export class ResourceRepository {
                     eq(tasks.workspaceId, workspaceId),
                     isNull(tasks.deletedAt),
                     // Task must intersect with the date range
-                    // startDate <= dateTo AND (dueDate IS NULL OR dueDate >= dateFrom)
-                    lte(tasks.startDate, dateTo),
+                    // (startDate IS NULL OR startDate <= dateTo) AND (dueDate IS NULL OR dueDate >= dateFrom)
+                    or(isNull(tasks.startDate), lte(tasks.startDate, dateTo)),
                     or(isNull(tasks.dueDate), gte(tasks.dueDate, dateFrom))
                 )
             );
@@ -79,8 +79,7 @@ export class ResourceRepository {
                     eq(taskAssignments.userId, userId),
                     eq(tasks.workspaceId, workspaceId),
                     isNull(tasks.deletedAt),
-                    isNotNull(tasks.startDate), // Need a start date to plan
-                    lte(tasks.startDate, dateTo),
+                    or(isNull(tasks.startDate), lte(tasks.startDate, dateTo)),
                     or(isNull(tasks.dueDate), gte(tasks.dueDate, dateFrom))
                 )
             );
@@ -99,8 +98,8 @@ export class ResourceRepository {
             const dayOfWeek = getDay(curr);
             if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
                  for (const record of records) {
-                    const tStart = startOfDay(record.startDate!);
-                    const tEnd = record.dueDate ? endOfDay(record.dueDate) : addDays(tStart, 1);
+                    const tStart = record.startDate ? startOfDay(record.startDate) : startOfDay(dateFrom);
+                    const tEnd = record.dueDate ? endOfDay(record.dueDate) : addDays(tStart, 30);
                     
                     if (curr >= tStart && curr <= tEnd) {
                         totalAlloc += (record.allocationPercent ?? 100);
@@ -263,8 +262,9 @@ export class ResourceRepository {
 
                 if (!isWeekend && !isHoliday) {
                     for (const a of userAssignments) {
-                        const tStart = startOfDay(a.startDate!);
-                        const tEnd = a.dueDate ? endOfDay(a.dueDate) : addDays(tStart, 1);
+                        // Handle tasks with no startDate — treat as active from assignment creation
+                        const tStart = a.startDate ? startOfDay(a.startDate) : startOfDay(dateFrom);
+                        const tEnd = a.dueDate ? endOfDay(a.dueDate) : addDays(tStart, 30); // Default 30-day span if no dueDate
                         
                         if (curr >= tStart && curr <= tEnd) {
                             const alloc = a.allocationPercent ?? 100;

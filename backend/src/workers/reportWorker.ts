@@ -157,7 +157,7 @@ cron.schedule('*/15 * * * *', async () => {
         for (const schedule of dueSchedules) {
             // Fetch the template to know reportType + config
             const template = await db.query.reportTemplates.findFirst({
-                where: eq(reportSchedules.reportTemplateId, schedule.reportTemplateId),
+                where: eq(reportTemplates.id, schedule.reportTemplateId),
             });
 
             if (!template) continue;

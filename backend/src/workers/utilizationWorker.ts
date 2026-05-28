@@ -31,7 +31,11 @@ const utilizationWorker = new Worker(
 
         // Cache the raw array for 30 minutes
         const cacheKey = `util:${userId}:${workspaceId}`;
-        await redisClient.setex(cacheKey, 1800, JSON.stringify(utilizationData));
+        if (redisClient.status === 'ready') {
+            try {
+                await redisClient.setex(cacheKey, 1800, JSON.stringify(utilizationData));
+            } catch { /* Redis unavailable — skip caching */ }
+        }
 
         if (overAllocatedDates.length > 0) {
             // Find userName

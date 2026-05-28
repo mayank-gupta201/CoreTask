@@ -1,5 +1,5 @@
 import { portfolioRepository } from '../repositories/portfolio.repository';
-import { redisClient } from './cache.service';
+import { cacheService } from './cache.service';
 import { db } from '../db';
 import { workspaceMembers } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -79,21 +79,11 @@ export class PortfolioService {
 
         const cacheKey = `portfolio_dashboard:${id}`;
 
-        if (redisClient) {
-            const cached = await redisClient.get(cacheKey);
-            if (cached) {
-                return JSON.parse(cached);
-            }
-        }
-
-        const data = await portfolioRepository.getPortfolioDashboard(id);
-
-        if (redisClient && data) {
-            // Cache for 300 seconds (5 minutes)
-            await redisClient.setex(cacheKey, 300, JSON.stringify(data));
-        }
-
-        return data;
+        return await cacheService.getOrSet(
+            cacheKey,
+            () => portfolioRepository.getPortfolioDashboard(id),
+            300 // 5 minutes TTL
+        );
     }
 
     // --- Programs & Projects Management ---

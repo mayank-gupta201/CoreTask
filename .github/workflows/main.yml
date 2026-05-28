@@ -76,6 +76,10 @@ jobs:
         working-directory: frontend
         run: bun run tsc --noEmit
 
+      - name: Run frontend component tests
+        working-directory: frontend
+        run: bun run test
+
       - name: Build frontend
         working-directory: frontend
         run: bun run build

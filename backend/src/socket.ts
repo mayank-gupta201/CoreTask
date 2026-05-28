@@ -1,6 +1,9 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import * as jsonwebtoken from 'jsonwebtoken';
 import { logger } from './middlewares/logger.middleware';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey_please_change_in_prod';
 
 export interface ServerToClientEvents {
     // Standard Tasks
@@ -44,8 +47,24 @@ export const initSocket = (server: HttpServer) => {
         },
     });
 
+    // JWT authentication middleware — reject unauthenticated connections
+    io.use((socket, next) => {
+        const token = socket.handshake.auth?.token;
+        if (!token) {
+            return next(new Error('Authentication required'));
+        }
+        try {
+            const payload = jsonwebtoken.verify(token, JWT_SECRET) as { userId: string };
+            (socket as any).userId = payload.userId;
+            next();
+        } catch (err) {
+            return next(new Error('Invalid or expired token'));
+        }
+    });
+
     io.on('connection', (socket: Socket) => {
-        logger.info(`Socket connected: ${socket.id}`);
+        const userId = (socket as any).userId;
+        logger.info(`Socket connected: ${socket.id} (user: ${userId})`);
 
         socket.on('joinWorkspace', (workspaceId: string) => {
             const roomName = `workspace_${workspaceId}`;

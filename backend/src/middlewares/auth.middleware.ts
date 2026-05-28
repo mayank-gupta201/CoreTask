@@ -4,6 +4,9 @@ import { ProblemDetails } from '../errors';
 import { userRepository } from '../repositories/user.repository';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey_please_change_in_prod';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET must be set in production environment');
+}
 
 export interface AuthRequest extends Request {
     user?: {

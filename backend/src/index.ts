@@ -37,11 +37,13 @@ app.get('/health', (req, res) => {
     res.send('OK');
 });
 
-// Mock endpoint to trigger email queue
-app.post('/api/test-email', async (req, res) => {
-    await emailQueue.add('sendEmail', { to: 'test@example.com', subject: 'Hello' });
-    res.json({ message: 'Email queued' });
-});
+// Mock endpoint to trigger email queue (dev only)
+if (process.env.NODE_ENV !== 'production') {
+    app.post('/api/test-email', async (req, res) => {
+        await emailQueue.add('sendEmail', { to: 'test@example.com', subject: 'Hello' });
+        res.json({ message: 'Email queued' });
+    });
+}
 
 // Global Error Handler (RFC 7807) MUST be at the end
 app.use(errorHandler);

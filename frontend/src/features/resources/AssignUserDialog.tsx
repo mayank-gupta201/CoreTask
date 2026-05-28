@@ -23,8 +23,8 @@ export function AssignUserDialog() {
         queryKey: ['tasks', activeWorkspaceId],
         queryFn: async () => {
             if (!activeWorkspaceId) return [];
-            const res = await api.get(`/workspaces/${activeWorkspaceId}/tasks`);
-            return res.data.items || [];
+            const res = await api.get('/tasks', { params: { limit: 200 } });
+            return res.data?.items || [];
         },
         enabled: !!activeWorkspaceId && open
     });
@@ -103,7 +103,7 @@ export function AssignUserDialog() {
                             <SelectContent className="max-h-60">
                                 {members.map((m: any) => (
                                     <SelectItem key={m.userId} value={m.userId}>
-                                        {m.user?.email || m.userId}
+                                        {m.email || m.userId}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

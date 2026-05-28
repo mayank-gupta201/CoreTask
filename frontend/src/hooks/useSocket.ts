@@ -21,9 +21,10 @@ export function useSocket() {
             return;
         }
 
-        // Initialize socket connection
+        // Initialize socket connection with JWT auth
         const newSocket = io(SOCKET_URL, {
             withCredentials: true,
+            auth: { token },
         });
 
         // Event listeners

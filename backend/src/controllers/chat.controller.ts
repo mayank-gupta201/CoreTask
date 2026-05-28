@@ -26,18 +26,14 @@ export class ChatController {
             // If AI created tasks, insert them into the database
             let createdTasks: any[] = [];
             if (result.tasks && result.tasks.length > 0) {
-                for (const t of result.tasks) {
-                    try {
-                        const task = await taskService.createTask(workspaceId, userId, {
-                            title: t.title,
-                            priority: t.priority || 'MEDIUM',
-                            category: t.category || 'AI Created',
-                        });
-                        createdTasks.push(task);
-                    } catch (e) {
-                        // Skip individual task creation failures
-                    }
-                }
+                const taskPromises = result.tasks.map((t: any) =>
+                    taskService.createTask(workspaceId, userId, {
+                        title: t.title,
+                        priority: t.priority || 'MEDIUM',
+                        category: t.category || 'AI Created',
+                    }).catch(() => null) // Skip individual failures
+                );
+                createdTasks = (await Promise.all(taskPromises)).filter(Boolean);
             }
 
             return res.json({

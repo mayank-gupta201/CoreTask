@@ -7,9 +7,14 @@ import { eq } from 'drizzle-orm';
 import { emailQueue } from '../queue';
 import crypto from 'crypto';
 import { auditService } from './audit.service';
+import { logger } from '../middlewares/logger.middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey_please_change_in_prod';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'superrefreshsecretkey_please_change_in_prod';
+if (process.env.NODE_ENV === 'production') {
+    if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET must be set in production');
+    if (!process.env.REFRESH_SECRET) throw new Error('FATAL: REFRESH_SECRET must be set in production');
+}
 
 export class AuthService {
     async register(data: { email: string; passwordHash: string }) {
@@ -65,7 +70,7 @@ export class AuthService {
                 payload: { token: verificationToken },
             });
         } catch (e) {
-            console.error('Failed to enqueue email:', e);
+            logger.error({ err: e }, 'Failed to enqueue verification email');
         }
 
         const accessToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '15m' });
@@ -115,7 +120,7 @@ export class AuthService {
                 payload: { token: resetPasswordToken },
             });
         } catch (e) {
-            console.error('Failed to enqueue password reset email:', e);
+            logger.error({ err: e }, 'Failed to enqueue password reset email');
         }
 
         await auditService.logAction({

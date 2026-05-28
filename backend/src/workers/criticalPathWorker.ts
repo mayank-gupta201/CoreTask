@@ -115,7 +115,13 @@ const criticalPathWorker = new Worker(
 
         // 6. Save to Redis Cache (60 minute TTL)
         const cacheKey = `critical-path:${workspaceId}`;
-        await redisClient.setex(cacheKey, 3600, JSON.stringify(criticalPathTaskIds));
+        if (redisClient.status === 'ready') {
+            try {
+                await redisClient.setex(cacheKey, 3600, JSON.stringify(criticalPathTaskIds));
+            } catch {
+                logger.warn(`Could not cache critical path for ${workspaceId} (Redis unavailable)`);
+            }
+        }
 
         // 7. Emit WebSocket event
         getIO().to(`workspace_${workspaceId}`).emit('critical-path:updated', { 
